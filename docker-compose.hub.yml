@@ -1,0 +1,63 @@
+# Run with Hub images instead of local builds:
+#   export DOCKERHUB_USER=youruser
+#   docker compose -f docker-compose.hub.yml up -d
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: mission_control
+      MYSQL_USER: mission
+      MYSQL_PASSWORD: mission
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  commander:
+    image: ${DOCKERHUB_USER}/mission-commander:latest
+    ports:
+      - "18080:8080"
+    environment:
+      PORT: "8080"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      MYSQL_DSN: mission:mission@tcp(mysql:3306)/mission_control?parseTime=true
+      SOLDIER_SHARED_SECRET: change-me-soldier-secret
+      TOKEN_TTL_SECONDS: "30"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  soldier:
+    image: ${DOCKERHUB_USER}/mission-soldier:latest
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      COMMANDER_URL: http://commander:8080
+      SOLDIER_SHARED_SECRET: change-me-soldier-secret
+      WORKER_POOL_SIZE: "4"
+      MISSION_MIN_DELAY_SECONDS: "5"
+      MISSION_MAX_DELAY_SECONDS: "15"
+      TOKEN_REFRESH_SKEW_SECONDS: "5"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      commander:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

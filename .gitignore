@@ -1,0 +1,11 @@
+.env
+*.exe
+*.test
+*.out
+.DS_Store
+.idea/
+.vscode/
+commander/commander
+soldier/soldier
+**/bin/
+**/tmp/

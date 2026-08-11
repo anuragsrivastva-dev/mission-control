@@ -1,0 +1,69 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: mission_control
+      MYSQL_USER: mission
+      MYSQL_PASSWORD: mission
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql_data:/var/lib/mysql
+    # MySQL is reachable as hostname "mysql" on the compose network.
+    # Host port omitted to avoid clashing with a local MySQL on :3306.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  commander:
+    build: ./commander
+    image: mission-commander:local
+    ports:
+      - "18080:8080"
+    environment:
+      PORT: "8080"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      MYSQL_DSN: mission:mission@tcp(mysql:3306)/mission_control?parseTime=true
+      SOLDIER_SHARED_SECRET: change-me-soldier-secret
+      TOKEN_TTL_SECONDS: "30"
+      MYSQL_MAX_OPEN_CONNS: "10"
+      MYSQL_MAX_IDLE_CONNS: "5"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  soldier:
+    build: ./soldier
+    image: mission-soldier:local
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      COMMANDER_URL: http://commander:8080
+      SOLDIER_SHARED_SECRET: change-me-soldier-secret
+      WORKER_POOL_SIZE: "4"
+      MISSION_MIN_DELAY_SECONDS: "5"
+      MISSION_MAX_DELAY_SECONDS: "15"
+      TOKEN_REFRESH_SKEW_SECONDS: "5"
+      TOKEN_TTL_SECONDS: "30"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      commander:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
