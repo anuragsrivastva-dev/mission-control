@@ -1,5 +1,5 @@
 # Run with Hub images instead of local builds:
-#   export DOCKERHUB_USER=youruser
+#   export DOCKERHUB_USER=anuragsrivastva
 #   docker compose -f docker-compose.hub.yml up -d
 
 services:

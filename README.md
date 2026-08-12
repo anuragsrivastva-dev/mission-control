@@ -55,19 +55,24 @@ docker compose down
 
 ### Docker Hub images
 
-Build and push (replace `YOURUSER`):
+Published images:
+
+- https://hub.docker.com/r/anuragsrivastva/mission-commander
+- https://hub.docker.com/r/anuragsrivastva/mission-soldier
+
+Rebuild and push:
 
 ```bash
-docker build -t YOURUSER/mission-commander:latest ./commander
-docker build -t YOURUSER/mission-soldier:latest ./soldier
-docker push YOURUSER/mission-commander:latest
-docker push YOURUSER/mission-soldier:latest
+docker build -t anuragsrivastva/mission-commander:latest ./commander
+docker build -t anuragsrivastva/mission-soldier:latest ./soldier
+docker push anuragsrivastva/mission-commander:latest
+docker push anuragsrivastva/mission-soldier:latest
 ```
 
-Run from Hub:
+Run from Hub (no local Go build needed):
 
 ```bash
-export DOCKERHUB_USER=YOURUSER
+export DOCKERHUB_USER=anuragsrivastva
 docker compose -f docker-compose.hub.yml up -d
 ```
 
