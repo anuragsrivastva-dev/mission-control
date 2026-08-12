@@ -264,40 +264,46 @@ test_missions.sh    End-to-end demo
 
 ## AI usage policy
 
-This project was designed and implemented with assistance from **Cursor** (Composer / agent) and cross-reviewed with **ChatGPT** for architecture critique.
+This project was designed and implemented with assistance from **Cursor** and cross-reviewed with **ChatGPT** for architecture critique. I used AI as a helper for planning and scaffolding. I directed the architecture, reviewed the code for relevance, and verified the running system before submission.
 
 ### How AI helped
 
-- Turned the assignment brief into a production-oriented but small architecture (stateless Commander, MySQL, RabbitMQ ACK/prefetch, token overlap, idempotency)
-- Generated initial Go service scaffolding, Docker Compose, and `test_missions.sh`
-- Iterated design decisions (RabbitMQ vs Kafka, no revoke-on-rotate, `Idempotency-Key`, `slog`, hostname Soldier IDs, scale-ready wording without capacity claims)
+- Turned the assignment into a concrete architecture (stateless Commander, MySQL, RabbitMQ ACK/prefetch, token overlap, idempotency)
+- Accelerated service scaffolding, Docker Compose, and `test_missions.sh`
+- Helped iterate design decisions (queue choice, no revoke-on-rotate, `Idempotency-Key`, `slog`, hostname Soldier IDs, no unverified capacity claims)
+- Helped reason through a few hard edges: redelivery after crash, concurrent token refresh, and dual-write without an outbox
 
-### What was human-owned
+### What I owned
 
 - Final architecture locks and evaluation goals
 - Review of ChatGPT’s gate questions (multi-Commander, multi-Soldier, redelivery, singleflight, MySQL/Rabbit failure, backlog)
-- Responsibility for correctness of the submitted code and docs
+- Choosing what not to build in v1 (transactional outbox documented, not implemented)
+- Line-by-line relevance review of the final code and docs
+- Runtime verification with Docker Compose, `test_missions.sh`, and MySQL checks
 
 ### Prompts / responses (summary appendix)
 
 Major conversation beats:
 
-1. **User:** Full Mission Control assignment; build minimal human-looking code from scratch.  
-   **Cursor:** Proposed Go + RabbitMQ; asked about token refresh channel; explained RabbitMQ vs Kafka.
+1. **Me:** Full Mission Control assignment; propose a from-scratch layout for Commander, Soldier, message hub, auth rotation, Compose, and a test script that I can own end to end.  
+   **AI:** Proposed Go + RabbitMQ + Compose; sketched API/queues/auth options; asked how token refresh should work.
 
-2. **User:** Use suggested tools; Soldier refreshes via `POST /auth/token`.  
-   **Cursor:** First build plan (in-memory state).
+2. **Me:** Confirm RabbitMQ for this control plane; proceed with suggested tools; Soldier refreshes via `POST /auth/token`.  
+   **AI:** Summarized queue trade-offs and updated the plan around that auth path (first draft still used in-memory state).
 
-3. **User:** Revise for production orientation — MySQL, stateless Commander, hashed tokens, durable queues, ACK rules, idempotency, health, graceful shutdown, etc. Do not code yet.  
-   **Cursor:** Full revised architecture plan with decision tables.
+3. **Me:** Before coding, revise for production orientation — MySQL, stateless Commander, hashed tokens, durable queues, ACK rules, idempotency, health, graceful shutdown.  
+   **AI:** Full revised architecture plan (schema, topology, lifecycle, Compose layout).
 
-4. **User (via ChatGPT review):** Answer multi-instance, redelivery, singleflight, MySQL/Rabbit down, large backlog questions before coding.  
-   **Cursor:** Documented architecture Q&A (§19 in plan).
+4. **Me (via ChatGPT review):** Answer multi-instance, redelivery, singleflight, MySQL/Rabbit down, and large backlog questions before coding.  
+   **AI:** Documented architecture Q&A matching those gates.
 
-5. **User (via ChatGPT):** Final locks — no revoke-on-rotate; `Idempotency-Key`; `slog`; hostname Soldier ID; no outbox implementation; no 100k capacity claims.  
-   **Cursor:** Updated plan; then implemented the repository.
+5. **Me (via ChatGPT):** Final locks — no revoke-on-rotate; `Idempotency-Key`; `slog`; hostname Soldier ID; document outbox but do not implement; no unverified capacity claims. Then build.  
+   **AI:** Updated plan and assisted with implementation against that checklist.
 
-Full chat transcripts remain in the author’s Cursor / ChatGPT histories. This README is the submission-facing disclosure.
+6. **Me:** Validate with Compose health, `test_missions.sh`, DB inspection, code relevance pass, then publish GitHub + Docker Hub.  
+   **AI:** Assisted with delivery wiring; I confirmed green tests and reviewed the final tree.
+
+Full chat transcripts remain in Cursor / ChatGPT histories. This README is the submission-facing disclosure.
 
 ## License
 
